@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIDS - Security Operations Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        :root {
+            --primary-color: #39bcc9;
+            --primary-dark: #2a9bb0;
+            --primary-light: #4dd0dd;
+            --primary-subtle: rgba(57, 188, 201, 0.1);
+            --primary-gradient: linear-gradient(135deg, #39bcc9 0%, #2a9bb0 100%);
+            
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --text-muted: #a0aec0;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1);
+            
+            --success-color: #38c172;
+            --warning-color: #f6ad55;
+            --danger-color: #e53e3e;
+            --info-color: var(--primary-color);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: var(--primary-gradient);
+            box-shadow: var(--shadow-lg);
+            padding: 1.5rem 0;
+            border: none;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: white !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand i {
+            font-size: 2rem;
+            margin-right: 0.75rem;
+        }
+
+        .status-indicator {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active { background-color: #38c172; }
+        .status-warning { background-color: #f6ad55; }
+        .status-error { background-color: #e53e3e; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        /* Enhanced Prominent Metric Cards */
+        .metric-card {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #f0fdff 100%);
+            border: 2px solid var(--primary-color);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 8px 25px rgba(57, 188, 201, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--primary-gradient);
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(57, 188, 201, 0.1) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(57, 188, 201, 0.25);
+            border-color: var(--primary-dark);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #e6fcff 100%);
+        }
+
+        .metric-icon {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 3.5rem;
+            color: var(--primary-color);
+            opacity: 0.3;
+            z-index: 1;
+        }
+
+        .metric-label {
+            font-size: 1.1rem;
+            color: var(--primary-dark);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            z-index: 2;
+            position: relative;
+        }
+
+        .metric-value {
+            font-size: 4rem;
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 1rem 0;
+            line-height: 0.9;
+            z-index: 2;
+            position: relative;
+            text-shadow: 0 2px 4px rgba(57, 188, 201, 0.1);
+        }
+
+        .metric-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            z-index: 2;
+            position: relative;
+            padding: 0.5rem 1rem;
+            background: rgba(57, 188, 201, 0.1);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        /* Special styling for threat count */
+        .metric-value.threat-count {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #ff6b6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Pulsing animation for active metrics */
+        .metric-card.active {
+            animation: subtlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes subtlePulse {
+            0%, 100% { 
+                box-shadow: 0 8px 25px rgba(57, 188, 201, 0.15);
+            }
+            50% { 
+                box-shadow: 0 12px 35px rgba(57, 188, 201, 0.25);
+            }
+        }
+
+        /* Chart Containers - Fixed sizing and spacing */
+        .chart-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            min-height: 400px; /* Ensure minimum height */
+        }
+
+        .chart-container:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            text-align: left;
+            width: 100%;
+        }
+
+        .chart-title i {
+            margin-right: 1rem;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+        }
+
+        /* Fixed chart content area */
+        .chart-content {
+            width: 100%;
+            height: 350px; /* Fixed height for charts */
+            position: relative;
+        }
+
+        /* Alert Panel */
+        .alert-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--info-color);
+            position: relative;
+        }
+
+        .alert-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+            background: var(--bg-secondary);
+        }
+
+        .alert-high { border-left-color: var(--danger-color); }
+        .alert-medium { border-left-color: var(--warning-color); }
+        .alert-low { border-left-color: var(--info-color); }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .alert-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: white;
+        }
+
+        .alert-high-bg { background: var(--danger-color); }
+        .alert-medium-bg { background: var(--warning-color); }
+        .alert-low-bg { background: var(--info-color); }
+
+        .alert-timestamp {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .alert-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .alert-source {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: rgba(57, 188, 201, 0.1);
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+
+        .alert-description {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h5 {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 0;
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .footer-content i {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem 0;
+            }
+            
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+            
+            .metric-card, .chart-container, .alert-panel {
+                padding: 1.5rem;
+            }
+            
+            .metric-value {
+                font-size: 3rem;
+            }
+            
+            .chart-title {
+                font-size: 1.2rem;
+            }
+            
+            .alert-content {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--primary-subtle);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Teal Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt"></i>
+                Security Operations Center
+            </a>
+            <div class="ms-auto">
+                <div class="status-indicator">
+                    <div class="status-dot status-active" id="status-dot"></div>
+                    <span id="system-status">MONITORING ACTIVE</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-4">
+        <!-- Enhanced Visible Metric Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+                <div class="metric-card active">
+                    <div class="metric-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="metric-label">📊 Packets Analyzed</div>
+                    <div class="metric-value" id="total-packets">0</div>
+                    <div class="metric-subtitle">Real-time monitoring active</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+                <div class="metric-card active">
+                    <div class="metric-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="metric-label">🚨 Security Threats</div>
+                    <div class="metric-value threat-count" id="total-threats">0</div>
+                    <div class="metric-subtitle">Threats detected today</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+                <div class="metric-card active">
+                    <div class="metric-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="metric-label">📈 Detection Rate</div>
+                    <div class="metric-value" id="threat-rate">0.0%</div>
+                    <div class="metric-subtitle">System efficiency</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+                <div class="metric-card active">
+                    <div class="metric-icon">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <div class="metric-label">🔌 Active Sessions</div>
+                    <div class="metric-value" id="active-connections">1</div>
+                    <div class="metric-subtitle">Current connections</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beautiful Charts Section -->
+        <div class="row">
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Threat Severity Analysis
+                    </div>
+                    <div class="chart-content" id="severity-chart"></div>
+                </div>
+            </div>
+            <div class="col-xl-8 col-lg-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-line"></i>
+                        Security Events Timeline (24h)
+                    </div>
+                    <div class="chart-content" id="hourly-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Attack Vector Distribution
+                    </div>
+                    <div class="chart-content" id="threats-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beautiful Alert Panel -->
+        <div class="row">
+            <div class="col-12">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <i class="fas fa-bell"></i>
+                        Recent Security Alerts
+                        <div class="ms-auto d-flex align-items-center">
+                            <small class="text-muted me-3">Last updated: <span id="last-update">Loading...</span></small>
+                            <div class="loading-spinner" id="loading-indicator" style="display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="alert-panel" id="recent-alerts">
+                        <div class="empty-state">
+                            <div class="loading-spinner"></div>
+                            <h6 class="mt-3">Loading security alerts...</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Elegant Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <strong>Network Intrusion Detection System</strong><br>
+                    <small>Advanced Real-time Security Monitoring</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const socket = io();
+        
+        // Beautiful teal color scheme for charts
+        const chartTheme = {
+            primary: '#39bcc9',
+            primaryDark: '#2a9bb0',
+            primaryLight: '#4dd0dd',
+            success: '#38c172',
+            warning: '#f6ad55',
+            danger: '#e53e3e',
+            background: 'transparent',
+            text: '#2d3748'
+        };
+
+        function updateDashboard() {
+            document.getElementById('loading-indicator').style.display = 'block';
+            
+            fetch('/api/dashboard-data')
+                .then(response => response.json())
+                .then(data => {
+                    // Update charts with beautiful teal theme and proper sizing
+                    if (data.severity_chart) {
+                        const severityData = JSON.parse(data.severity_chart);
+                        severityData.data[0].marker = {
+                            colors: [chartTheme.danger, chartTheme.warning, chartTheme.primary]
+                        };
+                        severityData.layout = {
+                            paper_bgcolor: chartTheme.background,
+                            plot_bgcolor: chartTheme.background,
+                            font: { family: 'Inter, sans-serif', size: 14, color: chartTheme.text },
+                            showlegend: true,
+                            legend: { 
+                                orientation: 'h', 
+                                x: 0.5, 
+                                xanchor: 'center', 
+                                y: -0.2,
+                                font: { size: 12 }
+                            },
+                            margin: { t: 40, b: 80, l: 40, r: 40 },
+                            height: 300,
+                            autosize: true
+                        };
+                        Plotly.newPlot('severity-chart', severityData.data, severityData.layout, {
+                            displayModeBar: false, 
+                            responsive: true
+                        });
+                    }
+                    
+                    if (data.hourly_chart) {
+                        const hourlyData = JSON.parse(data.hourly_chart);
+                        hourlyData.data[0].line = { color: chartTheme.primary, width: 3 };
+                        hourlyData.data[0].marker = { color: chartTheme.primary, size: 8 };
+                        hourlyData.data[0].fill = 'tonexty';
+                        hourlyData.data[0].fillcolor = 'rgba(57, 188, 201, 0.1)';
+                        hourlyData.layout = {
+                            paper_bgcolor: chartTheme.background,
+                            plot_bgcolor: chartTheme.background,
+                            font: { family: 'Inter, sans-serif', size: 13, color: chartTheme.text },
+                            xaxis: { 
+                                gridcolor: '#e2e8f0',
+                                showgrid: true,
+                                gridwidth: 1,
+                                title: { font: { size: 12 } }
+                            },
+                            yaxis: { 
+                                gridcolor: '#e2e8f0',
+                                showgrid: true,
+                                gridwidth: 1,
+                                title: { font: { size: 12 } }
+                            },
+                            margin: { t: 40, b: 60, l: 60, r: 40 },
+                            height: 300,
+                            autosize: true
+                        };
+                        Plotly.newPlot('hourly-chart', hourlyData.data, hourlyData.layout, {
+                            displayModeBar: false, 
+                            responsive: true
+                        });
+                    }
+                    
+                    if (data.threats_chart) {
+                        const threatsData = JSON.parse(data.threats_chart);
+                        threatsData.data[0].marker = {
+                            color: chartTheme.primary,
+                            line: { color: chartTheme.primaryDark, width: 1 }
+                        };
+                        threatsData.layout = {
+                            paper_bgcolor: chartTheme.background,
+                            plot_bgcolor: chartTheme.background,
+                            font: { family: 'Inter, sans-serif', size: 13, color: chartTheme.text },
+                            xaxis: { 
+                                gridcolor: '#e2e8f0',
+                                showgrid: true,
+                                title: { font: { size: 12 } }
+                            },
+                            yaxis: { 
+                                gridcolor: '#e2e8f0',
+                                showgrid: true,
+                                title: { font: { size: 12 } }
+                            },
+                            margin: { t: 40, b: 80, l: 60, r: 40 },
+                            height: 300,
+                            autosize: true
+                        };
+                        Plotly.newPlot('threats-chart', threatsData.data, threatsData.layout, {
+                            displayModeBar: false, 
+                            responsive: true
+                        });
+                    }
+                    
+                    // Update statistics
+                    document.getElementById('total-threats').textContent = data.statistics.total_threats || 0;
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                    document.getElementById('loading-indicator').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error updating dashboard:', error);
+                    document.getElementById('loading-indicator').style.display = 'none';
+                });
+        }
+
+        function updateRecentAlerts() {
+            fetch('/api/recent-alerts')
+                .then(response => response.json())
+                .then(alerts => {
+                    const alertsContainer = document.getElementById('recent-alerts');
+                    if (alerts.length === 0) {
+                        alertsContainer.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-shield-check"></i>
+                                <h5>System Secure</h5>
+                                <p>No recent security threats detected</p>
+                            </div>`;
+                        return;
+                    }
+                    
+                    let alertsHtml = '';
+                    alerts.slice(-8).reverse().forEach(alert => {
+                        const severityClass = `alert-${alert.severity.toLowerCase()}`;
+                        const severityBadgeClass = `alert-${alert.severity.toLowerCase()}-bg`;
+                        const timestamp = new Date(alert.timestamp).toLocaleString();
+                        
+                        alertsHtml += `
+                            <div class="alert-item ${severityClass}">
+                                <div class="alert-header">
+                                    <div class="d-flex align-items-center">
+                                        <span class="alert-badge ${severityBadgeClass}">${alert.severity}</span>
+                                        <strong class="ms-3">${alert.type}</strong>
+                                    </div>
+                                    <span class="alert-timestamp">
+                                        <i class="fas fa-clock me-1"></i>${timestamp}
+                                    </span>
+                                </div>
+                                <div class="alert-content">
+                                    <div class="alert-source">
+                                        <i class="fas fa-map-marker-alt me-2"></i>${alert.source_ip}
+                                    </div>
+                                    <div class="alert-description">
+                                        ${alert.description}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    alertsContainer.innerHTML = alertsHtml;
+                })
+                .catch(error => console.error('Error updating alerts:', error));
+        }
+
+        // Initialize dashboard
+        updateDashboard();
+        updateRecentAlerts();
+        
+        // Set up periodic updates
+        setInterval(updateDashboard, 30000);
+        setInterval(updateRecentAlerts, 10000);
+        
+        // Socket.IO connection handling
+        socket.on('connect', function() {
+            console.log('Connected to NIDS Dashboard');
+            document.getElementById('system-status').textContent = 'MONITORING ACTIVE';
+            document.getElementById('status-dot').className = 'status-dot status-active';
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from NIDS Dashboard');
+            document.getElementById('system-status').textContent = 'CONNECTION LOST';
+            document.getElementById('status-dot').className = 'status-dot status-error';
+        });
+
+        // Handle window resize for charts
+        window.addEventListener('resize', function() {
+            setTimeout(function() {
+                Plotly.Plots.resize('severity-chart');
+                Plotly.Plots.resize('hourly-chart');
+                Plotly.Plots.resize('threats-chart');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
