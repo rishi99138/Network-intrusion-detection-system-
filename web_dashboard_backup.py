@@ -11,54 +11,24 @@ import queue
 import os
 import csv
 
-# Import demo data generator
-try:
-    from demo_data_generator import NIDSDemoData
-    DEMO_AVAILABLE = True
-except ImportError:
-    print("Warning: Demo data generator not found - running in live mode only")
-    NIDSDemoData = None
-    DEMO_AVAILABLE = False
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'nids_dashboard_secret_key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 class NIDSDashboard:
     def __init__(self):
-        # Check if running in demo mode
-        self.demo_mode = os.getenv('DEMO_MODE', 'False').lower() == 'true'
-        
-        if self.demo_mode and DEMO_AVAILABLE:
-            print("🌟 Dashboard running in DEMO MODE")
-            print("📊 Using sample data for demonstration")
-            self.demo_generator = NIDSDemoData()
-            self.alerts_data = self.demo_generator.generate_demo_alerts(60)
-        else:
-            print("🔍 Dashboard running in LIVE MODE")
-            self.demo_generator = None
-            self.alerts_data = []
-            self.load_existing_alerts()
-        
         self.alert_queue = queue.Queue()
-        self.live_stats = self.initialize_live_stats()
-    
-    def initialize_live_stats(self):
-        """Initialize live statistics"""
-        if self.demo_mode and self.demo_generator:
-            return self.demo_generator.generate_live_stats()
-        else:
-            return {
-                'total_packets': 0,
-                'total_threats': 0,
-                'active_connections': 1,
-                'threat_rate': '0.0%'
-            }
+        self.alerts_data = []
+        self.live_stats = {
+            'total_packets': 0,
+            'total_threats': 0,
+            'active_connections': 0,
+            'threat_rate': 0
+        }
+        self.load_existing_alerts()
     
     def load_existing_alerts(self):
-        """Load existing alerts from log files (live mode only)"""
-        if self.demo_mode:
-            return
-            
+        """Load existing alerts from log files"""
         try:
             if os.path.exists('logs/nids_alerts.json'):
                 with open('logs/nids_alerts.json', 'r') as f:
@@ -75,21 +45,16 @@ class NIDSDashboard:
     
     def get_threat_statistics(self):
         """Calculate comprehensive threat statistics"""
-        if self.demo_mode and self.demo_generator:
-            # Return demo statistics
-            return self.demo_generator.generate_demo_statistics(self.alerts_data)
-        
-        # Live mode - existing logic
         if not self.alerts_data:
             return {
                 'severity_breakdown': {'HIGH': 0, 'MEDIUM': 0, 'LOW': 0},
                 'threat_types': {},
                 'hourly_trends': [],
                 'top_source_ips': [],
-                'total_threats': 0
+                'geographic_threats': []
             }
         
-        # Calculate real statistics
+        # Severity breakdown
         severity_counts = {'HIGH': 0, 'MEDIUM': 0, 'LOW': 0}
         threat_types = {}
         hourly_data = {}
@@ -134,7 +99,7 @@ class NIDSDashboard:
         
         return {
             'severity_breakdown': severity_counts,
-            'threat_types': dict(list(threat_types.items())[:10]),
+            'threat_types': dict(list(threat_types.items())[:10]),  # Top 10 types
             'hourly_trends': list(reversed(hourly_trends)),
             'top_source_ips': [{'ip': ip, 'count': count} for ip, count in top_ips],
             'total_threats': len(self.alerts_data)
@@ -148,7 +113,7 @@ class NIDSDashboard:
         severity_fig = go.Figure(data=[go.Pie(
             labels=list(stats['severity_breakdown'].keys()),
             values=list(stats['severity_breakdown'].values()),
-            marker_colors=['#e53e3e', '#f6ad55', '#39bcc9']
+            marker_colors=['#ff4444', '#ffaa44', '#4444ff']
         )])
         severity_fig.update_layout(
             title='Threat Severity Distribution',
@@ -161,10 +126,8 @@ class NIDSDashboard:
             x=[item['hour'] for item in stats['hourly_trends']],
             y=[item['count'] for item in stats['hourly_trends']],
             mode='lines+markers',
-            line=dict(color='#39bcc9', width=3),
-            marker=dict(size=6),
-            fill='tonexty',
-            fillcolor='rgba(57, 188, 201, 0.1)'
+            line=dict(color='#ff6666', width=3),
+            marker=dict(size=6)
         ))
         hourly_fig.update_layout(
             title='Threat Activity - Last 24 Hours',
@@ -177,7 +140,7 @@ class NIDSDashboard:
         threat_types_fig = go.Figure(data=[go.Bar(
             x=list(stats['threat_types'].keys()),
             y=list(stats['threat_types'].values()),
-            marker_color='#39bcc9'
+            marker_color='#66b3ff'
         )])
         threat_types_fig.update_layout(
             title='Threat Types Distribution',
@@ -216,33 +179,17 @@ def recent_alerts():
 @app.route('/api/live-stats')
 def live_stats():
     """Get live statistics"""
-    if dashboard.demo_mode and dashboard.demo_generator:
-        # Update with fresh demo stats
-        dashboard.live_stats = dashboard.demo_generator.generate_live_stats()
-    
     return jsonify(dashboard.live_stats)
-
-@app.route('/api/demo-status')
-def demo_status():
-    """Check if running in demo mode"""
-    return jsonify({
-        "demo_mode": dashboard.demo_mode,
-        "message": "Demo data - Download for live monitoring" if dashboard.demo_mode else "Live monitoring active"
-    })
 
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
     print('Client connected to dashboard')
-    emit('status', {
-        'msg': 'Connected to NIDS Dashboard',
-        'demo_mode': dashboard.demo_mode
-    })
+    emit('status', {'msg': 'Connected to NIDS Dashboard'})
 
 def run_dashboard():
     """Start the dashboard server"""
-    mode = "DEMO" if dashboard.demo_mode else "LIVE"
-    print(f"🌐 Starting NIDS Web Dashboard in {mode} mode...")
+    print("🌐 Starting NIDS Web Dashboard...")
     print("📊 Access dashboard at: http://localhost:5000")
     socketio.run(app, host='0.0.0.0', port=5000, debug=False)
 
