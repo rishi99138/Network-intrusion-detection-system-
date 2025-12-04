@@ -3,509 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NIDS - Security Operations Center</title>
+    <title>NIDS - DEFCON 1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
     <style>
         :root {
-            --primary-color: #39bcc9;
-            --primary-dark: #2a9bb0;
-            --primary-light: #4dd0dd;
-            --primary-subtle: rgba(57, 188, 201, 0.1);
-            --primary-gradient: linear-gradient(135deg, #39bcc9 0%, #2a9bb0 100%);
+            /* Cyberpunk Palette */
+            --neon-cyan: #00f3ff;
+            --neon-pink: #bc13fe;
+            --neon-green: #0aff0a;
+            --neon-yellow: #f1ff5e;
+            --neon-red: #ff003c;
             
-            --bg-primary: #fafbfc;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #f8f9fa;
-            --text-primary: #2d3748;
-            --text-secondary: #718096;
-            --text-muted: #a0aec0;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
-            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --bg-dark: #050505;
+            --bg-panel: rgba(16, 20, 24, 0.85);
+            --grid-line: rgba(0, 243, 255, 0.1);
             
-            --success-color: #38c172;
-            --warning-color: #f6ad55;
-            --danger-color: #e53e3e;
-            --info-color: var(--primary-color);
+            --border-tech: 1px solid rgba(0, 243, 255, 0.3);
+            
+            --font-ui: 'Rajdhani', sans-serif;
+            --font-data: 'JetBrains Mono', monospace;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            line-height: 1.6;
-            font-weight: 400;
-        }
-
-        /* Navigation Bar */
-        .navbar {
-            background: var(--primary-gradient);
-            box-shadow: var(--shadow-lg);
-            padding: 1.5rem 0;
-            border: none;
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.6rem;
-            color: white !important;
-            display: flex;
-            align-items: center;
-        }
-
-        .navbar-brand i {
-            font-size: 2rem;
-            margin-right: 0.75rem;
-        }
-
-        .status-indicator {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            color: white;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 10px;
-            animation: pulse 2s infinite;
-        }
-
-        .status-active { background-color: #38c172; }
-        .status-warning { background-color: #f6ad55; }
-        .status-error { background-color: #e53e3e; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-        }
-
-        /* Enhanced Prominent Metric Cards */
-        .metric-card {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, #f0fdff 100%);
-            border: 2px solid var(--primary-color);
-            border-radius: 20px;
-            padding: 2.5rem;
-            margin: 1.5rem 0;
-            box-shadow: 0 8px 25px rgba(57, 188, 201, 0.15);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            min-height: 200px;
-        }
-
-        .metric-card::before {
-            content: '';
+        /* CRT Scanline Effect Overlay */
+        body::before {
+            content: " ";
+            display: block;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 6px;
-            background: var(--primary-gradient);
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
         }
 
+        body {
+            background-color: var(--bg-dark);
+            /* Sci-Fi Grid Background */
+            background-image: 
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            font-family: var(--font-ui);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Navigation --- */
+        .navbar {
+            background: rgba(5, 5, 5, 0.9);
+            border-bottom: 1px solid var(--neon-cyan);
+            backdrop-filter: blur(5px);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            color: var(--neon-cyan) !important;
+            font-family: var(--font-data);
+            font-weight: 700;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .btn-manual {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-family: var(--font-data);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 5px 15px;
+            transition: all 0.3s;
+        }
+
+        .btn-manual:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .status-indicator {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            font-family: var(--font-data);
+            font-size: 0.8rem;
+            padding: 0.5rem 1.5rem;
+            letter-spacing: 2px;
+            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%, 0% 40%);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            display: inline-block;
+            margin-right: 10px;
+            animation: blink 1s infinite;
+        }
+        
+        .status-error .status-dot { background-color: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- Metric Cards (HUD Style) --- */
+        .metric-card {
+            background: var(--bg-panel);
+            border: var(--border-tech);
+            position: relative;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        /* Tech Corners */
         .metric-card::after {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(57, 188, 201, 0.1) 0%, transparent 70%);
-            z-index: 0;
+            top: 0; right: 0;
+            width: 20px; height: 20px;
+            border-top: 2px solid var(--neon-cyan);
+            border-right: 2px solid var(--neon-cyan);
+        }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 20px; height: 20px;
+            border-bottom: 2px solid var(--neon-cyan);
+            border-left: 2px solid var(--neon-cyan);
         }
 
         .metric-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(57, 188, 201, 0.25);
-            border-color: var(--primary-dark);
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, #e6fcff 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
         }
 
         .metric-icon {
             position: absolute;
-            top: 2rem;
-            right: 2rem;
-            font-size: 3.5rem;
-            color: var(--primary-color);
-            opacity: 0.3;
-            z-index: 1;
+            right: 1.5rem;
+            top: 1.5rem;
+            color: rgba(255, 255, 255, 0.1);
+            font-size: 4rem;
+            z-index: 0;
         }
 
         .metric-label {
-            font-size: 1.1rem;
-            color: var(--primary-dark);
-            font-weight: 700;
+            color: var(--neon-cyan);
+            font-family: var(--font-data);
+            font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 1rem;
-            z-index: 2;
+            letter-spacing: 1px;
             position: relative;
+            z-index: 1;
         }
 
         .metric-value {
-            font-size: 4rem;
-            font-weight: 900;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 1rem 0;
-            line-height: 0.9;
-            z-index: 2;
+            font-family: var(--font-ui);
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0.5rem 0;
+            line-height: 1;
             position: relative;
-            text-shadow: 0 2px 4px rgba(57, 188, 201, 0.1);
+            z-index: 1;
+            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
+        .metric-value.threat-count {
+            color: var(--neon-red);
+            text-shadow: 0 0 10px rgba(255, 0, 60, 0.6);
         }
 
         .metric-subtitle {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            z-index: 2;
-            position: relative;
-            padding: 0.5rem 1rem;
-            background: rgba(57, 188, 201, 0.1);
-            border-radius: 12px;
-            text-align: center;
+            font-family: var(--font-data);
+            font-size: 0.7rem;
+            color: #888;
+            border-left: 2px solid var(--neon-pink);
+            padding-left: 10px;
         }
 
-        /* Special styling for threat count */
-        .metric-value.threat-count {
-            background: linear-gradient(135deg, var(--danger-color) 0%, #ff6b6b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Pulsing animation for active metrics */
-        .metric-card.active {
-            animation: subtlePulse 3s ease-in-out infinite;
-        }
-
-        @keyframes subtlePulse {
-            0%, 100% { 
-                box-shadow: 0 8px 25px rgba(57, 188, 201, 0.15);
-            }
-            50% { 
-                box-shadow: 0 12px 35px rgba(57, 188, 201, 0.25);
-            }
-        }
-
-        /* Chart Containers - Fixed sizing and spacing */
+        /* --- Charts --- */
         .chart-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 2rem;
-            margin: 1rem 0;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-            min-height: 400px; /* Ensure minimum height */
-        }
-
-        .chart-container:hover {
-            box-shadow: var(--shadow-md);
+            background: var(--bg-panel);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-top: 2px solid var(--neon-pink);
+            padding: 1rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         .chart-title {
-            font-size: 1.4rem;
+            font-family: var(--font-ui);
+            text-transform: uppercase;
+            letter-spacing: 2px;
             font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            padding-bottom: 1.5rem;
-            border-bottom: 2px solid var(--primary-color);
-            text-align: left;
-            width: 100%;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 0.5rem;
         }
+        
+        .chart-title i { color: var(--neon-pink); margin-right: 10px; }
 
-        .chart-title i {
-            margin-right: 1rem;
-            color: var(--primary-color);
-            font-size: 1.8rem;
-        }
-
-        /* Fixed chart content area */
         .chart-content {
             width: 100%;
-            height: 350px; /* Fixed height for charts */
-            position: relative;
+            height: 350px;
         }
 
-        /* Alert Panel */
+        /* --- Alert Panel (Terminal Style) --- */
         .alert-panel {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: var(--shadow-sm);
-            max-height: 500px;
+            background: #000;
+            border: 1px solid #333;
+            max-height: 400px;
             overflow-y: auto;
+            padding: 1rem;
+            font-family: var(--font-data);
         }
 
         .alert-item {
-            background: var(--bg-tertiary);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-            border-left: 4px solid var(--info-color);
-            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid #555;
+            margin-bottom: 8px;
+            padding: 10px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
         }
 
         .alert-item:hover {
-            transform: translateX(4px);
-            box-shadow: var(--shadow-md);
-            background: var(--bg-secondary);
+            background: rgba(255, 255, 255, 0.08);
         }
 
-        .alert-high { border-left-color: var(--danger-color); }
-        .alert-medium { border-left-color: var(--warning-color); }
-        .alert-low { border-left-color: var(--info-color); }
-
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
+        .alert-high { border-left-color: var(--neon-red); }
+        .alert-medium { border-left-color: var(--neon-yellow); }
+        .alert-low { border-left-color: var(--neon-cyan); }
 
         .alert-badge {
-            padding: 0.375rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: white;
+            background: transparent;
+            border: 1px solid currentColor;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-right: 10px;
         }
-
-        .alert-high-bg { background: var(--danger-color); }
-        .alert-medium-bg { background: var(--warning-color); }
-        .alert-low-bg { background: var(--info-color); }
-
-        .alert-timestamp {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .alert-content {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 1rem;
-            align-items: center;
-        }
+        
+        .alert-high-bg { color: var(--neon-red); border-color: var(--neon-red); }
+        .alert-medium-bg { color: var(--neon-yellow); border-color: var(--neon-yellow); }
+        .alert-low-bg { color: var(--neon-cyan); border-color: var(--neon-cyan); }
 
         .alert-source {
-            font-family: 'Monaco', 'Consolas', monospace;
-            background: rgba(57, 188, 201, 0.1);
-            padding: 0.5rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            color: var(--primary-dark);
-            font-weight: 500;
+            color: #aaa;
+            margin-top: 4px;
+            font-size: 0.75rem;
         }
 
-        .alert-description {
-            font-size: 0.95rem;
-            color: var(--text-primary);
-            font-weight: 500;
+        .alert-description { color: #fff; }
+        
+        /* --- Modal Styling --- */
+        .modal-content {
+            background-color: #050505;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid var(--neon-pink);
+            background: rgba(188, 19, 254, 0.05);
+        }
+        
+        .modal-title {
+            color: var(--neon-cyan);
+            font-family: var(--font-ui);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .modal-body {
+            color: #ccc;
+            font-family: var(--font-data);
+        }
+        
+        .modal-body h4 {
+            color: var(--neon-yellow);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            border-left: 3px solid var(--neon-cyan);
+            padding-left: 10px;
+        }
+        
+        .terminal-block {
+            background: #000;
+            border: 1px solid #333;
+            padding: 1rem;
+            color: #0aff0a;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 10px 0;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .terminal-block::before {
+            content: "SHELL";
+            position: absolute;
+            top: 0; right: 0;
+            background: #333;
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 0 5px;
         }
 
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
         }
 
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .empty-state h5 {
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border: 1px solid #000; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
 
         /* Footer */
         .footer {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            padding: 3rem 0;
-            margin-top: 4rem;
+            margin-top: 3rem;
+            border-top: 1px solid #222;
+            padding: 2rem 0;
             text-align: center;
+            color: #555;
+            font-family: var(--font-data);
+            font-size: 0.8rem;
         }
 
-        .footer-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            color: var(--text-secondary);
-        }
-
-        .footer-content i {
-            color: var(--primary-color);
-            font-size: 1.25rem;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 1rem 0;
-            }
-            
-            .navbar-brand {
-                font-size: 1.25rem;
-            }
-            
-            .metric-card, .chart-container, .alert-panel {
-                padding: 1.5rem;
-            }
-            
-            .metric-value {
-                font-size: 3rem;
-            }
-            
-            .chart-title {
-                font-size: 1.2rem;
-            }
-            
-            .alert-content {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
-            }
-        }
-
-        /* Loading Animation */
+        /* Loading */
         .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--primary-subtle);
+            width: 20px; height: 20px;
+            border: 2px solid var(--neon-cyan);
+            border-top-color: transparent;
             border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s ease-in-out infinite;
+            animation: spin 1s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
-    <!-- Modern Teal Navigation -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-4">
             <a class="navbar-brand" href="#">
-                <i class="fas fa-shield-alt"></i>
-                Security Operations Center
+                <i class="fas fa-biohazard me-2"></i>
+                NIDS // OPERATIONS_CENTER
             </a>
+            
+            <button class="btn btn-manual ms-3 d-none d-lg-block" data-bs-toggle="modal" data-bs-target="#manualModal">
+                <i class="fas fa-book me-2"></i>PROTOCOL_MANUAL
+            </button>
+
             <div class="ms-auto">
                 <div class="status-indicator">
                     <div class="status-dot status-active" id="status-dot"></div>
-                    <span id="system-status">MONITORING ACTIVE</span>
+                    <span id="system-status">SYSTEM_ONLINE</span>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="container-fluid px-4 py-4">
-        <!-- Enhanced Visible Metric Cards -->
         <div class="row">
             <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-                <div class="metric-card active">
-                    <div class="metric-icon">
-                        <i class="fas fa-network-wired"></i>
-                    </div>
-                    <div class="metric-label">📊 Packets Analyzed</div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fas fa-microchip"></i></div>
+                    <div class="metric-label">Total Traffic</div>
                     <div class="metric-value" id="total-packets">0</div>
-                    <div class="metric-subtitle">Real-time monitoring active</div>
+                    <div class="metric-subtitle">PACKETS ANALYZED</div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-                <div class="metric-card active">
-                    <div class="metric-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="metric-label">🚨 Security Threats</div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fas fa-shield-virus"></i></div>
+                    <div class="metric-label">Threats Detected</div>
                     <div class="metric-value threat-count" id="total-threats">0</div>
-                    <div class="metric-subtitle">Threats detected today</div>
+                    <div class="metric-subtitle">SECURITY INCIDENTS</div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-                <div class="metric-card active">
-                    <div class="metric-icon">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                    <div class="metric-label">📈 Detection Rate</div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fas fa-crosshairs"></i></div>
+                    <div class="metric-label">Capture Rate</div>
                     <div class="metric-value" id="threat-rate">0.0%</div>
-                    <div class="metric-subtitle">System efficiency</div>
+                    <div class="metric-subtitle">EFFICIENCY METRIC</div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-                <div class="metric-card active">
-                    <div class="metric-icon">
-                        <i class="fas fa-plug"></i>
-                    </div>
-                    <div class="metric-label">🔌 Active Sessions</div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fas fa-network-wired"></i></div>
+                    <div class="metric-label">Active Links</div>
                     <div class="metric-value" id="active-connections">1</div>
-                    <div class="metric-subtitle">Current connections</div>
+                    <div class="metric-subtitle">OPEN SESSIONS</div>
                 </div>
             </div>
         </div>
 
-        <!-- Beautiful Charts Section -->
         <div class="row">
             <div class="col-xl-4 col-lg-6 mb-4">
                 <div class="chart-container">
                     <div class="chart-title">
                         <i class="fas fa-chart-pie"></i>
-                        Threat Severity Analysis
+                        Threat Severity Distribution
                     </div>
                     <div class="chart-content" id="severity-chart"></div>
                 </div>
@@ -513,8 +426,8 @@
             <div class="col-xl-8 col-lg-6 mb-4">
                 <div class="chart-container">
                     <div class="chart-title">
-                        <i class="fas fa-chart-line"></i>
-                        Security Events Timeline (24h)
+                        <i class="fas fa-wave-square"></i>
+                        Live Network Traffic (24h)
                     </div>
                     <div class="chart-content" id="hourly-chart"></div>
                 </div>
@@ -525,30 +438,29 @@
             <div class="col-12 mb-4">
                 <div class="chart-container">
                     <div class="chart-title">
-                        <i class="fas fa-chart-bar"></i>
-                        Attack Vector Distribution
+                        <i class="fas fa-bug"></i>
+                        Attack Vector Classification
                     </div>
                     <div class="chart-content" id="threats-chart"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Beautiful Alert Panel -->
         <div class="row">
             <div class="col-12">
                 <div class="chart-container">
                     <div class="chart-title">
-                        <i class="fas fa-bell"></i>
-                        Recent Security Alerts
-                        <div class="ms-auto d-flex align-items-center">
-                            <small class="text-muted me-3">Last updated: <span id="last-update">Loading...</span></small>
+                        <i class="fas fa-terminal"></i>
+                        System_Logs // Recent_Alerts
+                        <div class="ms-auto d-flex align-items-center" style="font-size: 0.8rem; opacity: 0.7;">
+                            <small class="me-3">SYNC: <span id="last-update">initializing...</span></small>
                             <div class="loading-spinner" id="loading-indicator" style="display: none;"></div>
                         </div>
                     </div>
                     <div class="alert-panel" id="recent-alerts">
-                        <div class="empty-state">
-                            <div class="loading-spinner"></div>
-                            <h6 class="mt-3">Loading security alerts...</h6>
+                        <div class="text-center p-5" style="color: #444; font-family: 'JetBrains Mono'">
+                            <i class="fas fa-circle-notch fa-spin fa-2x mb-3"></i>
+                            <p>ESTABLISHING SECURE CONNECTION...</p>
                         </div>
                     </div>
                 </div>
@@ -556,32 +468,97 @@
         </div>
     </div>
 
-    <!-- Elegant Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <i class="fas fa-shield-alt"></i>
-                <div>
-                    <strong>Network Intrusion Detection System</strong><br>
-                    <small>Advanced Real-time Security Monitoring</small>
+    <div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-code me-2"></i>Deployment_Protocol // V3.0
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-dark border border-warning text-warning mb-4" style="background: rgba(255, 193, 7, 0.1);">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>DEMO MODE ACTIVE:</strong> The current interface is displaying simulated data. To monitor live network traffic, deploy this system locally using the protocol below.
+                    </div>
+
+                    <h4>01 // SYSTEM PREREQUISITES</h4>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i> OS: Windows 10/11 (64-bit) [Admin Required]</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Runtime: Python 3.9 or higher</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Driver: Npcap (Packet Capture Lib)</li>
+                    </ul>
+
+                    <h4>02 // DEPLOYMENT PROTOCOL</h4>
+                    <p><strong>Phase A: Source Acquisition</strong></p>
+                    <div class="terminal-block">
+                        git clone https://github.com/rishi99138/Network-intrusion-detection-system-.git<br>
+                        cd Network-intrusion-detection-system-
+                    </div>
+
+                    <p><strong>Phase B: Dependency Injection</strong></p>
+                    <div class="terminal-block">
+                        pip install -r requirements.txt
+                    </div>
+
+                    <p><strong>Phase C: Driver Configuration</strong></p>
+                    <small class="text-muted">Critical for Windows environments:</small>
+                    <ul>
+                        <li>Download <strong>Npcap</strong> from npcap.com</li>
+                        <li>Install with <strong>"WinPcap API-compatible Mode"</strong> ENABLED</li>
+                        <li>System Reboot Required</li>
+                    </ul>
+
+                    <h4>03 // SYSTEM ACTIVATION</h4>
+                    <div class="terminal-block">
+                        # Execute with Admin Privileges<br>
+                        python integrated_nids_system.py
+                    </div>
+                    <p>Access dashboard at: <span style="color: var(--neon-cyan)">http://localhost:5000</span></p>
+
+                    <h4>04 // VALIDATION TESTS</h4>
+                    <div class="terminal-block">
+                        # Port Scan Simulation<br>
+                        nmap -p 21,22,80 target_ip<br>
+                        <br>
+                        # DoS Traffic Simulation<br>
+                        ping -t target_ip
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #333;">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">CLOSE PROTOCOL</button>
+                    <a href="https://github.com/rishi99138/Network-intrusion-detection-system-" target="_blank" class="btn btn-sm" style="background: var(--neon-cyan); color: #000; font-weight: bold;">
+                        <i class="fab fa-github me-2"></i>ACCESS REPO
+                    </a>
                 </div>
             </div>
         </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div>NIDS v3.0 // SECURE OPS</div>
+            <small>Authorized Access Only</small>
+        </div>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         const socket = io();
         
-        // Beautiful teal color scheme for charts
+        // --- NEW CYBERPUNK THEME CONFIGURATION ---
         const chartTheme = {
-            primary: '#39bcc9',
-            primaryDark: '#2a9bb0',
-            primaryLight: '#4dd0dd',
-            success: '#38c172',
-            warning: '#f6ad55',
-            danger: '#e53e3e',
-            background: 'transparent',
-            text: '#2d3748'
+            primary: '#00f3ff',       // Neon Cyan
+            primaryDark: '#009099',
+            primaryLight: '#a6fbff',
+            success: '#0aff0a',       // Neon Green
+            warning: '#f1ff5e',       // Neon Yellow
+            danger: '#ff003c',        // Neon Red
+            background: 'rgba(0,0,0,0)', // Transparent to let grid show
+            text: '#e0e0e0',
+            grid: '#333'
         };
 
         function updateDashboard() {
@@ -590,103 +567,87 @@
             fetch('/api/dashboard-data')
                 .then(response => response.json())
                 .then(data => {
-                    // Update charts with beautiful teal theme and proper sizing
+                    // --- SEVERITY CHART (PIE) ---
                     if (data.severity_chart) {
                         const severityData = JSON.parse(data.severity_chart);
                         severityData.data[0].marker = {
-                            colors: [chartTheme.danger, chartTheme.warning, chartTheme.primary]
+                            colors: [chartTheme.danger, chartTheme.warning, chartTheme.primary],
+                            line: { color: '#000', width: 2 } // Black separators
                         };
+                        severityData.data[0].textinfo = 'label+percent';
+                        severityData.data[0].textfont = { color: '#000' }; // Black text on neon
+                        
                         severityData.layout = {
                             paper_bgcolor: chartTheme.background,
                             plot_bgcolor: chartTheme.background,
-                            font: { family: 'Inter, sans-serif', size: 14, color: chartTheme.text },
+                            font: { family: 'Rajdhani, sans-serif', size: 14, color: chartTheme.text },
                             showlegend: true,
-                            legend: { 
-                                orientation: 'h', 
-                                x: 0.5, 
-                                xanchor: 'center', 
-                                y: -0.2,
-                                font: { size: 12 }
-                            },
-                            margin: { t: 40, b: 80, l: 40, r: 40 },
-                            height: 300,
-                            autosize: true
+                            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.1 },
+                            margin: { t: 30, b: 50, l: 40, r: 40 },
+                            height: 300
                         };
-                        Plotly.newPlot('severity-chart', severityData.data, severityData.layout, {
-                            displayModeBar: false, 
-                            responsive: true
-                        });
+                        Plotly.newPlot('severity-chart', severityData.data, severityData.layout, {displayModeBar: false});
                     }
                     
+                    // --- HOURLY CHART (AREA/LINE) ---
                     if (data.hourly_chart) {
                         const hourlyData = JSON.parse(data.hourly_chart);
-                        hourlyData.data[0].line = { color: chartTheme.primary, width: 3 };
-                        hourlyData.data[0].marker = { color: chartTheme.primary, size: 8 };
-                        hourlyData.data[0].fill = 'tonexty';
-                        hourlyData.data[0].fillcolor = 'rgba(57, 188, 201, 0.1)';
+                        hourlyData.data[0].line = { color: chartTheme.primary, width: 2, shape: 'hv' }; // 'hv' for step-line/tech look
+                        hourlyData.data[0].marker = { color: '#fff', size: 6, symbol: 'square' };
+                        hourlyData.data[0].fillcolor = 'rgba(0, 243, 255, 0.15)';
+                        
                         hourlyData.layout = {
                             paper_bgcolor: chartTheme.background,
                             plot_bgcolor: chartTheme.background,
-                            font: { family: 'Inter, sans-serif', size: 13, color: chartTheme.text },
+                            font: { family: 'Rajdhani, sans-serif', size: 12, color: chartTheme.text },
                             xaxis: { 
-                                gridcolor: '#e2e8f0',
-                                showgrid: true,
-                                gridwidth: 1,
-                                title: { font: { size: 12 } }
+                                gridcolor: chartTheme.grid, 
+                                tickfont: { family: 'JetBrains Mono' },
+                                showgrid: true 
                             },
                             yaxis: { 
-                                gridcolor: '#e2e8f0',
-                                showgrid: true,
-                                gridwidth: 1,
-                                title: { font: { size: 12 } }
+                                gridcolor: chartTheme.grid, 
+                                tickfont: { family: 'JetBrains Mono' },
+                                showgrid: true 
                             },
-                            margin: { t: 40, b: 60, l: 60, r: 40 },
-                            height: 300,
-                            autosize: true
+                            margin: { t: 20, b: 40, l: 40, r: 20 },
+                            height: 300
                         };
-                        Plotly.newPlot('hourly-chart', hourlyData.data, hourlyData.layout, {
-                            displayModeBar: false, 
-                            responsive: true
-                        });
+                        Plotly.newPlot('hourly-chart', hourlyData.data, hourlyData.layout, {displayModeBar: false});
                     }
                     
+                    // --- THREATS CHART (BAR) ---
                     if (data.threats_chart) {
                         const threatsData = JSON.parse(data.threats_chart);
                         threatsData.data[0].marker = {
-                            color: chartTheme.primary,
-                            line: { color: chartTheme.primaryDark, width: 1 }
+                            color: chartTheme.danger,
+                            line: { color: chartTheme.danger, width: 0 }
                         };
+                        
                         threatsData.layout = {
                             paper_bgcolor: chartTheme.background,
                             plot_bgcolor: chartTheme.background,
-                            font: { family: 'Inter, sans-serif', size: 13, color: chartTheme.text },
+                            font: { family: 'Rajdhani, sans-serif', size: 12, color: chartTheme.text },
                             xaxis: { 
-                                gridcolor: '#e2e8f0',
-                                showgrid: true,
-                                title: { font: { size: 12 } }
+                                gridcolor: chartTheme.grid,
+                                tickfont: { family: 'JetBrains Mono' }
                             },
                             yaxis: { 
-                                gridcolor: '#e2e8f0',
-                                showgrid: true,
-                                title: { font: { size: 12 } }
+                                gridcolor: chartTheme.grid,
+                                tickfont: { family: 'JetBrains Mono' }
                             },
-                            margin: { t: 40, b: 80, l: 60, r: 40 },
-                            height: 300,
-                            autosize: true
+                            margin: { t: 20, b: 60, l: 40, r: 20 },
+                            height: 300
                         };
-                        Plotly.newPlot('threats-chart', threatsData.data, threatsData.layout, {
-                            displayModeBar: false, 
-                            responsive: true
-                        });
+                        Plotly.newPlot('threats-chart', threatsData.data, threatsData.layout, {displayModeBar: false});
                     }
                     
-                    // Update statistics
                     document.getElementById('total-threats').textContent = data.statistics.total_threats || 0;
                     document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
                     document.getElementById('loading-indicator').style.display = 'none';
                 })
                 .catch(error => {
-                    console.error('Error updating dashboard:', error);
+                    console.error('Error:', error);
                     document.getElementById('loading-indicator').style.display = 'none';
                 });
         }
@@ -698,39 +659,30 @@
                     const alertsContainer = document.getElementById('recent-alerts');
                     if (alerts.length === 0) {
                         alertsContainer.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-shield-check"></i>
-                                <h5>System Secure</h5>
-                                <p>No recent security threats detected</p>
+                            <div class="text-center p-4" style="color: #666">
+                                <i class="fas fa-check-circle mb-2"></i><br>
+                                SYSTEM_SECURE // NO_THREATS
                             </div>`;
                         return;
                     }
                     
                     let alertsHtml = '';
-                    alerts.slice(-8).reverse().forEach(alert => {
+                    alerts.slice(-15).reverse().forEach(alert => {
                         const severityClass = `alert-${alert.severity.toLowerCase()}`;
                         const severityBadgeClass = `alert-${alert.severity.toLowerCase()}-bg`;
-                        const timestamp = new Date(alert.timestamp).toLocaleString();
+                        const timestamp = new Date(alert.timestamp).toLocaleTimeString();
                         
                         alertsHtml += `
                             <div class="alert-item ${severityClass}">
-                                <div class="alert-header">
-                                    <div class="d-flex align-items-center">
+                                <div class="d-flex justify-content-between">
+                                    <span>
                                         <span class="alert-badge ${severityBadgeClass}">${alert.severity}</span>
-                                        <strong class="ms-3">${alert.type}</strong>
-                                    </div>
-                                    <span class="alert-timestamp">
-                                        <i class="fas fa-clock me-1"></i>${timestamp}
+                                        <span style="color: #fff; font-weight: bold; font-family: 'Rajdhani'">${alert.type}</span>
                                     </span>
+                                    <span style="color: #666; font-family: 'JetBrains Mono'">${timestamp}</span>
                                 </div>
-                                <div class="alert-content">
-                                    <div class="alert-source">
-                                        <i class="fas fa-map-marker-alt me-2"></i>${alert.source_ip}
-                                    </div>
-                                    <div class="alert-description">
-                                        ${alert.description}
-                                    </div>
-                                </div>
+                                <div class="alert-source">SOURCE: ${alert.source_ip}</div>
+                                <div class="alert-description">${alert.description}</div>
                             </div>
                         `;
                     });
@@ -740,28 +692,24 @@
                 .catch(error => console.error('Error updating alerts:', error));
         }
 
-        // Initialize dashboard
         updateDashboard();
         updateRecentAlerts();
-        
-        // Set up periodic updates
         setInterval(updateDashboard, 30000);
         setInterval(updateRecentAlerts, 10000);
         
-        // Socket.IO connection handling
         socket.on('connect', function() {
-            console.log('Connected to NIDS Dashboard');
-            document.getElementById('system-status').textContent = 'MONITORING ACTIVE';
-            document.getElementById('status-dot').className = 'status-dot status-active';
+            document.getElementById('system-status').textContent = 'SYSTEM_ONLINE';
+            document.getElementById('system-status').style.color = chartTheme.success;
+            document.getElementById('status-dot').className = 'status-dot';
+            document.getElementById('status-dot').style.backgroundColor = chartTheme.success;
         });
         
         socket.on('disconnect', function() {
-            console.log('Disconnected from NIDS Dashboard');
-            document.getElementById('system-status').textContent = 'CONNECTION LOST';
-            document.getElementById('status-dot').className = 'status-dot status-error';
+            document.getElementById('system-status').textContent = 'CONNECTION_LOST';
+            document.getElementById('system-status').style.color = chartTheme.danger;
+            document.getElementById('status-dot').style.backgroundColor = chartTheme.danger;
         });
 
-        // Handle window resize for charts
         window.addEventListener('resize', function() {
             setTimeout(function() {
                 Plotly.Plots.resize('severity-chart');
